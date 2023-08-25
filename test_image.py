@@ -104,7 +104,9 @@ def WriteDepth(predict_np, limg, path, name, bf):
 
     MkdirSimple(output_gray)
     depth_img = bf / predict_np * 100  # to cm
-    depth_img_u16 = depth_img * 100
+    depth_img_u16 = depth_img * 256
+    depth_img_u16[depth_img_u16 < 0] = 0
+    depth_img_u16[depth_img_u16 > 65535] = 65535
     depth_img_u16 = depth_img_u16.astype("uint16")
 
     cv2.imwrite(output_gray, depth_img_u16)
