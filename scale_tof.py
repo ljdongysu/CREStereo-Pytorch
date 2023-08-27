@@ -32,8 +32,9 @@ def tof_scale_depth(depth_file, tof_file, scale=1.0):
 
     tof_img = tof_img[:, :, 0] + (tof_img[:, :, 1] > 0) * 255 + tof_img[:, :, 1] + (
                 tof_img[:, :, 2] > 0) * 511 + tof_img[:, :, 2]
+    tof_img = tof_img * scale
 
-    real_depth = depth_img / scale
+    real_depth = depth_img.copy()
 
     mask_tof = tof_img > 0
     mask_depth = real_depth > 0
