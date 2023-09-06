@@ -15,6 +15,7 @@ def GetArgs():
     parser.add_argument("--width",type=str, default=None)
     parser.add_argument("--height",type=str, default=None)
     parser.add_argument("--scale_distance",type=int, default=None)
+    parser.add_argument('--bf', type=float, default=14.2, help="baseline length multiply focal length")
 
     args = parser.parse_args()
 
@@ -45,8 +46,11 @@ def get_boundary(image, width, height):
 
     return left, right, top, bottom
 
-def tof_scale_depth(depth_file, tof_file, scale=1.0, width=None, height=None, scale_distance=None):
-    depth_img = cv2.imread(depth_file, -1)
+def tof_scale_depth(disp_file, tof_file, scale=1.0, width=None, height=None, scale_distance=None, bf = 14.2):
+    disp_img = cv2.imread(disp_file, -1)
+    disp_img = disp_img/256
+    depth_img = bf /disp_img * 100
+
     tof_img = cv2.imread(tof_file, -1)
 
     # tof_img = tof_img[:, :, 0] + (tof_img[:, :, 1] > 0) * 255 + tof_img[:, :, 1] + (
@@ -69,11 +73,14 @@ def tof_scale_depth(depth_file, tof_file, scale=1.0, width=None, height=None, sc
     median_ratio = np.median(mask_ratio)
     depth_save = depth_img * median_ratio
 
-    depth_save[depth_save > 65535] = 65535
-    depth_save[depth_save < 0] = 0
-    depth_save = depth_save.astype(np.uint16)
+    disp_save = bf/depth_save *100
+    disp_save = disp_save * 256.0
+    disp_save[disp_save > 65535] = 65535
+    disp_save[disp_save < 0] = 0
+    disp_save = disp_save.astype(np.uint16)
+
     print("median_ratio: {}".format(median_ratio))
-    return depth_save
+    return disp_save
 
 def main():
     args = GetArgs()
@@ -95,7 +102,7 @@ def main():
         assert depth_file.split('/')[-1].split('/')[0] == tof_file.split('/')[-1].split('/')[0]\
             , "assert same image depth: {} with tof: {}".format(depth_file, tof_file)
 
-        depth_save = tof_scale_depth(depth_file, tof_file, args.scale, args.width, args.height, args.scale_distance)
+        depth_save = tof_scale_depth(depth_file, tof_file, args.scale, args.width, args.height, args.scale_distance, args.bf)
 
         WriteDepth(depth_save, args.output, output_name)
 
