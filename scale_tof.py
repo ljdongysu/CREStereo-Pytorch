@@ -12,7 +12,7 @@ def GetArgs():
     parser.add_argument('--tof_path', type=str, required=True)
     parser.add_argument('--output', type=str, required=True, help="dir saves scaled depth image")
     parser.add_argument('--scale', type=float, default=1, help="scale that depth data need multi to be real depth")
-
+    parser.add_argument('--replaced', action='store_true', default=False)
     args = parser.parse_args()
 
     return args
@@ -26,7 +26,7 @@ def WriteDepth(predict_np, path, name):
     cv2.imwrite(output_scale, predict_np)
     return
 
-def tof_scale_depth(depth_file, tof_file, scale=1.0):
+def tof_scale_depth(depth_file, tof_file, scale=1.0, replaced=False):
     depth_img = cv2.imread(depth_file, -1)
     tof_img = cv2.imread(tof_file, -1)
 
@@ -42,6 +42,8 @@ def tof_scale_depth(depth_file, tof_file, scale=1.0):
     mask_ratio = tof_img[mask] / real_depth[mask]
     median_ratio = np.median(mask_ratio)
     depth_save = depth_img * median_ratio
+    if replaced:
+        depth_save[mask] = tof_img[mask]
 
     depth_save[depth_save > 65535] = 65535
     depth_save[depth_save < 0] = 0
@@ -69,7 +71,7 @@ def main():
         assert depth_file.split('/')[-1].split('/')[0] == tof_file.split('/')[-1].split('/')[0]\
             , "assert same image depth: {} with tof: {}".format(depth_file, tof_file)
 
-        depth_save = tof_scale_depth(depth_file, tof_file, args.scale)
+        depth_save = tof_scale_depth(depth_file, tof_file, args.scale, args.replaced)
 
         WriteDepth(depth_save, args.output, output_name)
 
